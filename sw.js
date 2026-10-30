@@ -1,6 +1,6 @@
 // Service worker de CAIM-TED Circuito: permite usar la app sin conexión.
 // Si cambias index.html, sube el número de VERSION para que los móviles se actualicen.
-var VERSION = 'caim-v1';
+var VERSION = 'caim-v2';
 var SHELL = ['./', 'index.html', 'escudo.png', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {

@@ -170,6 +170,7 @@ button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible{o
   <div class="music">
     <h3>Música</h3>
     <p id="musicInfo">Sin canciones. Elige archivos de audio de tu móvil.</p>
+    <p id="musicStatus" class="meta" aria-live="polite" hidden></p>
     <div class="music-row">
       <input type="file" id="musicFile" class="vh" accept="audio/*" multiple>
       <label for="musicFile" class="btn small ghost">Elegir canciones</label>
@@ -219,7 +220,7 @@ button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible{o
   <img src="escudo.png" alt="Escudo CAIM Málaga TED">
   <h2>¡Circuito completado!</h2>
   <p>30 ejercicios terminados. Estira y recupera.</p>
-  <button id="home" class="btn primary" type="button">Volver al inicio</button>
+  <button id="backHome" class="btn primary" type="button">Volver al inicio</button>
 </section>
 
 <script>
@@ -380,16 +381,39 @@ button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible{o
       r.onerror=function(){ cb(null); };
     }catch(e){ cb(null); }
   }
-  function storeTracks(list){ idb(function(db){ if(!db) return; try{ var tx=db.transaction('music','readwrite'); tx.objectStore('music').put(list,'tracks'); }catch(e){} }); }
-  idb(function(db){ if(!db) return; try{ var q=db.transaction('music','readonly').objectStore('music').get('tracks'); q.onsuccess=function(){ if(q.result&&q.result.length&&!tracks.length) setTracks(q.result); }; }catch(e){} });
+  function setStatus(t,bad){ var s=$('musicStatus'); s.textContent=t||''; s.hidden=!t; s.style.color=bad?'var(--red-text)':''; }
+  function storeTracks(list){
+    if(!list.length){ idb(function(db){ if(!db) return; try{ db.transaction('music','readwrite').objectStore('music').clear(); }catch(e){} }); return; }
+    try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+    idb(function(db){
+      if(!db){ setStatus('No se han podido guardar: este navegador bloquea el almacenamiento. Tendrás que elegirlas cada vez.',true); return; }
+      try{
+        var tx=db.transaction('music','readwrite');
+        tx.objectStore('music').put(list,'tracks');
+        tx.oncomplete=function(){ setStatus('Guardadas en este móvil: la próxima vez ya estarán aquí.'); };
+        tx.onerror=tx.onabort=function(){
+          var full=tx.error&&tx.error.name==='QuotaExceededError';
+          setStatus(full?'No se han podido guardar: no hay espacio suficiente. Prueba con menos canciones.':'No se han podido guardar las canciones en este móvil.',true);
+        };
+      }catch(e){ setStatus('No se han podido guardar las canciones en este móvil.',true); }
+    });
+  }
+  idb(function(db){ if(!db) return; try{ var q=db.transaction('music','readonly').objectStore('music').get('tracks'); q.onsuccess=function(){ if(q.result&&q.result.length&&!tracks.length){ setTracks(q.result); setStatus('Canciones recuperadas de este móvil.'); } }; }catch(e){} });
 
   $('musicFile').addEventListener('change',function(){
-    var files=Array.prototype.slice.call(this.files||[]).filter(function(f){ return /^audio\//.test(f.type)||/\.(mp3|m4a|aac|wav|ogg|oga|flac|opus)$/i.test(f.name); });
+    var input=this;
+    var files=Array.prototype.slice.call(input.files||[]).filter(function(f){ return /^audio\//.test(f.type)||/\.(mp3|m4a|aac|wav|ogg|oga|flac|opus)$/i.test(f.name); });
     if(!files.length) return;
-    var list=files.map(function(f){ return {name:f.name,blob:f}; });
-    setTracks(list); storeTracks(list); this.value='';
+    setStatus('Cargando canciones…');
+    // Se copian a memoria para que el guardado no dependa del archivo original del móvil
+    Promise.all(files.map(function(f){
+      var type=f.type||'audio/mpeg';
+      return (f.arrayBuffer?f.arrayBuffer():new Response(f).arrayBuffer())
+        .then(function(buf){ return {name:f.name,blob:new Blob([buf],{type:type})}; })
+        .catch(function(){ return {name:f.name,blob:f}; });
+    })).then(function(list){ setTracks(list); storeTracks(list); input.value=''; });
   });
-  $('musicClear').addEventListener('click',function(){ pauseMusic(); setTracks([]); storeTracks([]); $('musicTry').textContent='Escuchar'; });
+  $('musicClear').addEventListener('click',function(){ pauseMusic(); setTracks([]); storeTracks([]); setStatus(''); $('musicTry').textContent='Escuchar'; });
   $('musicTry').addEventListener('click',function(){
     initPlayer(); if(!player) return;
     if(!player.paused){ pauseMusic(); this.textContent='Escuchar'; return; }
@@ -513,7 +537,7 @@ button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible{o
   }
 
   $('start').addEventListener('click',start);
-  $('home').addEventListener('click',function(){ show('home'); });
+  $('backHome').addEventListener('click',function(){ show('home'); });
   $('testSound').addEventListener('click',function(){
     if(!ensureAudio()) return;
     var t=ac.currentTime+0.05; beep(t); beep(t+1); bell(t+2);
