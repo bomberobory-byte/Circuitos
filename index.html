@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E0E0E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CAIM-TED">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>CAIM-TED Circuito</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen mobile app; home scrolls, session = timer + exercise list that follows the workout. Single dark look in the club's black, red and white. */
+:root{
+  --bg:#0E0E0E; --surface:#1B1B1B; --line:#303030;
+  --fg:#FFFFFF; --muted:#BDBDBD;
+  --red:#D0102B; --red-text:#FF5466;
+  --paper:#FFFFFF; --ink:#111111;
+  --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible+label,input[type=range]:focus-visible{outline:3px solid var(--red-text);outline-offset:3px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.screen{height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+.home{overflow-y:auto;gap:18px}
+
+/* Marca */
+.brand{display:flex;align-items:center;gap:16px;padding-top:6px;padding-bottom:16px;border-bottom:4px solid var(--red)}
+.brand img{height:96px;width:auto;flex-shrink:0}
+.eyebrow{margin:0;font-size:13px;font-weight:600;letter-spacing:3px;color:var(--muted)}
+.brand h1{margin:0;font-family:var(--display);font-weight:800;font-size:52px;line-height:.95;letter-spacing:1px}
+.summary h2{margin:0 0 6px;font-family:var(--display);font-weight:700;font-size:30px;line-height:1;text-transform:uppercase;color:var(--red-text);text-wrap:balance}
+.summary p{margin:0;line-height:1.4}
+.meta{color:var(--muted);font-size:15px;margin:4px 0 0}
+
+/* Botones */
+.btn{border:0;border-radius:12px;min-height:48px;padding:0 20px;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.5px;text-transform:uppercase;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.primary{background:var(--red);color:#FFFFFF}
+.primary:active{background:#A90D23}
+.ghost{background:transparent;border:2px solid var(--line);color:var(--fg)}
+.small{min-height:44px;font-size:17px;padding:0 14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .primary{flex:1 1 200px;min-height:60px;font-size:26px}
+.toggle{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px;color:var(--muted)}
+.toggle input{width:22px;height:22px;accent-color:var(--red)}
+
+/* Música */
+.music{background:var(--surface);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.music h3{margin:0;font-family:var(--display);font-weight:700;font-size:24px;text-transform:uppercase}
+.music-row{display:flex;gap:10px;flex-wrap:wrap}
+#musicInfo{margin:0;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.vol{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:15px}
+.vol input{grid-column:1/-1;width:100%;accent-color:var(--red);height:28px}
+.vol output{font-variant-numeric:tabular-nums;font-weight:600}
+.exact{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:15px}
+.vol .exact input{grid-column:auto;width:84px;height:44px;padding:0 8px;background:var(--bg);color:var(--fg);border:2px solid var(--line);border-radius:10px;font:inherit;font-weight:600;font-size:20px;text-align:center;font-variant-numeric:tabular-nums}
+.vol .exact input:focus-visible{outline:3px solid var(--red-text);outline-offset:2px}
+
+/* Lista de inicio */
+.list-title{margin:4px 0 -6px;font-size:13px;font-weight:600;letter-spacing:2px;color:var(--muted)}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;padding-bottom:12px}
+.list li,.si{display:grid;grid-template-columns:30px 66px minmax(0,1fr);align-items:center;gap:12px;background:var(--surface);border-radius:10px;padding:6px 12px 6px 10px}
+.num{font-family:var(--display);font-weight:700;font-size:20px;color:var(--red-text);font-variant-numeric:tabular-nums}
+.mini{background:var(--paper);border-radius:6px;display:block;line-height:0}
+.mini svg{width:100%;height:auto}
+.li-name{font-weight:600;font-size:16px;min-width:0}
+
+/* Sesión */
+.session{gap:10px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top-right{display:flex;align-items:center;gap:10px}
+.count{font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.total{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.icon-btn{width:44px;height:44px;border-radius:10px;border:2px solid var(--line);background:transparent;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn[aria-pressed="false"]{opacity:.45}
+.progress{height:6px;background:var(--surface);border-radius:3px;overflow:hidden;flex-shrink:0}
+.progress div{height:100%;width:0;background:var(--red);transition:width .3s}
+.confirm{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:2px solid var(--red);border-radius:12px;padding:10px 12px}
+.confirm span{flex:1 1 140px;font-weight:600}
+.timer{flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+.ring{width:min(56vw,30vh,260px);height:auto;aspect-ratio:1;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:12}
+.ring .track{stroke:var(--surface)}
+.ring #arc{stroke:var(--fg);stroke-linecap:round;transition:stroke .2s}
+.session.work .ring #arc{stroke:var(--red)}
+.timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.phase{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:2px;padding:3px 12px;border-radius:999px;background:var(--surface)}
+.session.work .phase{background:var(--red);color:#FFFFFF}
+.secs{font-family:var(--display);font-weight:800;font-size:clamp(56px,14vh,96px);line-height:1;font-variant-numeric:tabular-nums}
+.secs.final{color:var(--red-text);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.08)}}
+
+/* Lista de la sesión: el ejercicio en curso se destaca y crece */
+.slist{flex:1;min-height:0;overflow-y:auto;list-style:none;margin:0;padding:4px 2px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.si{transition:background-color .25s,padding .25s,grid-template-columns .25s}
+.si .stext{display:flex;flex-direction:column;gap:4px;min-width:0}
+.si .sname{font-weight:600;font-size:16px;line-height:1.15}
+.si .scue,.si .stag{display:none}
+.si.done{opacity:.4}
+.si.cur,.si.up{grid-template-columns:36px 128px minmax(0,1fr);padding:12px 14px 12px 12px;gap:14px}
+.si.cur{background:var(--red)}
+.si.cur .num{color:#FFFFFF}
+.si.up{background:var(--surface);box-shadow:inset 0 0 0 2px var(--fg)}
+.si.cur .num,.si.up .num{font-size:26px}
+.si.cur .sname,.si.up .sname{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;text-transform:uppercase;text-wrap:balance}
+.si.cur .scue,.si.up .scue{display:block;font-size:15px;line-height:1.35}
+.si.cur .scue{color:#FFFFFF}
+.si.up .scue{color:var(--muted)}
+.si.cur .stag,.si.up .stag{display:block;font-size:12px;font-weight:600;letter-spacing:2px}
+.si.cur .stag{color:#FFE3E6}
+.si.up .stag{color:var(--muted)}
+
+.controls{display:grid;grid-template-columns:64px minmax(0,1fr) 64px;gap:10px;flex-shrink:0}
+.ctrl{min-height:64px;padding:0;background:var(--surface);border:2px solid var(--line)}
+.ctrl svg{width:28px;height:28px}
+.ctrl.big{background:var(--fg);color:var(--ink);border-color:var(--fg);font-size:24px}
+
+/* Final */
+.done{align-items:center;justify-content:center;text-align:center;gap:18px}
+.done img{height:150px;width:auto}
+.done h2{margin:0;font-family:var(--display);font-weight:800;font-size:44px;line-height:1;text-transform:uppercase;color:var(--red-text);text-wrap:balance}
+.done p{margin:0;color:var(--muted);font-size:17px}
+.done .btn{min-width:240px}
+
+@media (prefers-reduced-motion:reduce){.secs.final{animation:none}.progress div,.si{transition:none}.slist{scroll-behavior:auto}}
+@media (max-height:640px){.si.cur,.si.up{grid-template-columns:30px 96px minmax(0,1fr)}.si.cur .sname,.si.up .sname{font-size:22px}}
+</style>
+
+</head>
+<body>
+<section id="home" class="screen home">
+  <header class="brand">
+    <img src="escudo.png" alt="Escudo CAIM Málaga TED">
+    <div>
+      <p class="eyebrow">CLUB DE ATLETISMO</p>
+      <h1>CAIM-TED</h1>
+    </div>
+  </header>
+  <div class="summary">
+    <h2>Circuito funcional</h2>
+    <p id="sumLine">30 ejercicios sin material · 30″ de trabajo · 30″ de descanso</p>
+    <p class="meta"><span id="sumDur">Duración: 29 min 40 s</span> · Timbre en los 5 últimos segundos de cada periodo</p>
+  </div>
+  <div class="actions">
+    <button id="start" class="btn primary" type="button">Empezar</button>
+    <button id="testSound" class="btn ghost" type="button">Probar sonido</button>
+  </div>
+  <div class="toggle"><input type="checkbox" id="soundOn" checked><label for="soundOn">Timbre</label><input type="checkbox" id="vibeOn" checked style="margin-left:14px"><label for="vibeOn">Vibración</label></div>
+
+  <div class="music">
+    <h3>Tiempos</h3>
+    <div class="vol"><label for="timeWork">Tiempo de ejercicio</label><span class="exact"><input type="number" id="timeWork" inputmode="numeric" min="5" max="600" step="1" value="30"><span aria-hidden="true">seg</span></span><input type="range" id="timeWorkRange" min="5" max="120" step="1" value="30" aria-label="Tiempo de ejercicio, deslizador"></div>
+    <div class="vol"><label for="timeRest">Tiempo de descanso</label><span class="exact"><input type="number" id="timeRest" inputmode="numeric" min="5" max="600" step="1" value="30"><span aria-hidden="true">seg</span></span><input type="range" id="timeRestRange" min="5" max="120" step="1" value="30" aria-label="Tiempo de descanso, deslizador"></div>
+    <p class="meta">Escribe los segundos exactos (de 5 a 600) o usa el deslizador.</p>
+  </div>
+
+  <div class="music">
+    <h3>Música</h3>
+    <p id="musicInfo">Sin canciones. Elige archivos de audio de tu móvil.</p>
+    <div class="music-row">
+      <input type="file" id="musicFile" class="vh" accept="audio/*" multiple>
+      <label for="musicFile" class="btn small ghost">Elegir canciones</label>
+      <button id="musicTry" class="btn small ghost" type="button" hidden>Escuchar</button>
+      <button id="musicClear" class="btn small ghost" type="button" hidden>Quitar</button>
+    </div>
+    <div class="vol"><label for="volWork">Volumen en ejercicio</label><output id="volWorkOut" for="volWork">100%</output><input type="range" id="volWork" min="0" max="100" step="5" value="100"></div>
+    <div class="vol"><label for="volRest">Volumen en descanso</label><output id="volRestOut" for="volRest">50%</output><input type="range" id="volRest" min="0" max="100" step="5" value="50"></div>
+    <p class="meta">La música baja un poco en los 5 últimos segundos para que se oiga el timbre.</p>
+  </div>
+
+  <p class="list-title">ORDEN DEL CIRCUITO</p>
+  <ol id="list" class="list"></ol>
+</section>
+
+<section id="session" class="screen session" hidden>
+  <div class="topbar">
+    <button id="exit" class="btn small ghost" type="button">Salir</button>
+    <span id="count" class="count">1/30</span>
+    <div class="top-right">
+      <span id="total" class="total">29:40</span>
+      <button id="musicToggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Música"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18 V5 L20 3 V16"></path><circle cx="6.5" cy="18" r="2.5"></circle><circle cx="17.5" cy="16" r="2.5"></circle></svg></button>
+    </div>
+  </div>
+  <div class="progress" aria-hidden="true"><div id="bar"></div></div>
+  <div id="confirm" class="confirm" hidden>
+    <span>¿Terminar la sesión?</span>
+    <button id="confirmYes" class="btn small primary" type="button">Terminar</button>
+    <button id="confirmNo" class="btn small ghost" type="button">Seguir</button>
+  </div>
+  <div class="timer">
+    <svg class="ring" viewBox="0 0 200 200" aria-hidden="true"><circle class="track" cx="100" cy="100" r="88"></circle><circle id="arc" cx="100" cy="100" r="88"></circle></svg>
+    <div class="timer-center" aria-live="polite">
+      <span id="phase" class="phase">PREPÁRATE</span>
+      <span id="secs" class="secs">10</span>
+    </div>
+  </div>
+  <ol id="slist" class="slist"></ol>
+  <div class="controls">
+    <button id="prev" class="btn ctrl" type="button" aria-label="Ejercicio anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5 L8 12 L18 19 Z M5 5 V19"></path></svg></button>
+    <button id="pause" class="btn ctrl big" type="button">Pausa</button>
+    <button id="next" class="btn ctrl" type="button" aria-label="Saltar periodo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5 L16 12 L6 19 Z M19 5 V19"></path></svg></button>
+  </div>
+</section>
+
+<section id="done" class="screen done" hidden>
+  <img src="escudo.png" alt="Escudo CAIM Málaga TED">
+  <h2>¡Circuito completado!</h2>
+  <p>30 ejercicios terminados. Estira y recupera.</p>
+  <button id="home" class="btn primary" type="button">Volver al inicio</button>
+</section>
+
+<script>
+(function(){
+  var PREP=10, DUCK=0.5;
+  var EX=[
+    {n:'Jumping jacks',c:'Abre piernas y brazos a la vez; aterriza suave.',p:'M60 19 L60 44 L42 72 M60 44 L78 72 M60 24 L38 8 M60 24 L82 8',h:[[60,12]]},
+    {n:'Skipping',c:'Rodillas a la altura de la cadera, braceo activo.',p:'M58 18 L58 42 L40 42 L44 60 M58 42 L60 73 L52 73 M58 23 L70 32 L66 42 M58 23 L46 30 L40 22',h:[[58,11]]},
+    {n:'Sentadilla',c:'Pies al ancho de hombros, cadera atrás y espalda neutra.',p:'M55 30 L66 48 L45 51 L47 73 L38 73 M57 34 L30 34',h:[[52,22]]},
+    {n:'Zancada frontal',c:'Paso largo, ambas rodillas a 90°. Alterna piernas.',p:'M60 20 L60 44 L42 47 L42 73 L34 73 M60 44 L76 70 L92 73 M60 25 L66 40',h:[[60,12]]},
+    {n:'Flexiones',c:'Cuerpo en bloque, codos a 45° del tronco.',p:'M32 45 L106 71 M34 46 L34 73',h:[[24,40]]},
+    {n:'Plancha frontal',c:'Antebrazos bajo hombros, abdomen y glúteos activos.',p:'M32 52 L106 71 M33 53 L33 71 L48 71',h:[[24,49]]},
+    {n:'Crunch',c:'Despega hombros del suelo con la mirada al techo.',p:'M60 72 L36 58 M60 72 L78 50 L92 73 M38 59 L48 52',h:[[29,52]]},
+    {n:'Puente de glúteo',c:'Empuja con talones y aprieta glúteos 2″ arriba.',p:'M22 70 L58 50 L78 44 L86 73 M22 72 L46 73',h:[[13,66]]},
+    {n:'Escaladores',c:'En plancha alta, rodillas al pecho alternando rápido.',p:'M32 42 L70 56 L106 72 M33 43 L33 73 M70 56 L48 62 L58 72',h:[[24,37]]},
+    {n:'Zancada lateral',c:'Paso amplio al lado, cadera atrás, otra pierna estirada.',p:'M46 22 L50 44 L34 56 L36 73 M50 44 L96 73 M47 27 L38 40',h:[[45,14]]},
+    {n:'Superman',c:'Boca abajo, eleva brazos y piernas sin forzar el cuello.',p:'M8 52 L32 64 L70 69 L110 56',h:[[26,55]]},
+    {n:'Bicicleta',c:'Codo hacia la rodilla contraria, alternando lados.',p:'M60 70 L38 58 M60 70 L70 48 L84 54 M60 70 L108 60 M40 58 L52 50',h:[[31,52]]},
+    {n:'Sentadilla con salto',c:'Baja a sentadilla, salta explosivo y amortigua al caer.',p:'M60 16 L60 40 L56 60 M60 40 L65 60 M60 21 L53 3 M60 21 L67 3',a:'M86 66 L86 40 M80 46 L86 40 L92 46',h:[[60,9]]},
+    {n:'Plancha lateral',c:'Cadera alta y cuerpo alineado. Cambia de lado a mitad de tiempo.',p:'M102 72 L38 47 M38 47 L38 73 M38 47 L38 16',h:[[27,42]]},
+    {n:'Bird-dog',c:'En cuadrupedia, estira brazo y pierna contrarios sin rotar.',p:'M40 44 L76 44 M40 44 L40 73 M76 44 L76 73 L94 73 M40 44 L10 39 M76 44 L112 39',h:[[32,36]]},
+    {n:'Crunch inverso',c:'Rodillas al pecho despegando la cadera del suelo.',p:'M22 70 L60 66 L64 42 L86 44 M22 72 L46 73',a:'M100 70 L100 50 M94 56 L100 50 L106 56',h:[[13,66]]},
+    {n:'Burpee',c:'Plancha, flexión, recoge piernas y salta con brazos arriba.',p:'M16 64 L56 71 M18 65 L18 73 M92 17 L92 40 L88 60 M92 40 L97 60 M92 22 L84 4 M92 22 L100 4',a:'M62 48 L76 48 M71 43 L76 48 L71 53',h:[[9,61],[92,10]]},
+    {n:'Toque de hombro',c:'En plancha alta, toca el hombro contrario sin mover la cadera.',p:'M32 45 L106 71 M34 46 L34 73 M36 47 L48 60 L44 50',h:[[24,40]]},
+    {n:'Elevación de talones',c:'Sube de puntillas y controla la bajada.',p:'M56 15 L56 42 L56 64 L64 73 M56 20 L50 40',a:'M80 66 L80 44 M74 50 L80 44 L86 50',h:[[56,8]]},
+    {n:'Giros rusos',c:'Tronco inclinado atrás, gira de lado a lado con control.',p:'M56 72 L40 46 M56 72 L76 52 L92 62 M42 50 L64 56',a:'M66 30 Q80 22 94 30 M89 25 L94 30 L88 33',h:[[36,38]]},
+    {n:'Zancada con salto',c:'Cambia de pierna en el aire y aterriza en zancada.',p:'M60 13 L60 38 L44 46 L44 62 M60 38 L72 56 L88 58 M60 18 L48 32 M60 18 L74 28',h:[[60,6]]},
+    {n:'Plancha con elevación de pierna',c:'En plancha de antebrazos, sube una pierna recta y alterna.',p:'M32 52 L72 62 L106 71 M72 62 L108 54 M33 53 L33 71 L48 71',h:[[24,49]]},
+    {n:'Escarabajo muerto',c:'Boca arriba, estira brazo y pierna contrarios sin despegar la lumbar.',p:'M24 70 L60 70 L60 46 L80 46 M60 70 L108 64 M26 68 L28 40 M26 68 L6 58',h:[[15,64]]},
+    {n:'Marcha de oso',c:'Rodillas a 3 cm del suelo; avanza mano y pie contrarios.',p:'M36 46 L76 42 L76 64 L94 73 M36 46 L34 73',a:'M8 26 L26 26 M21 21 L26 26 L21 31',h:[[28,41]]},
+    {n:'Elevación de piernas',c:'Piernas estiradas arriba y abajo sin arquear la espalda.',p:'M22 70 L60 71 L64 22 M22 72 L46 73',a:'M82 30 L82 60 M76 54 L82 60 L88 54',h:[[13,66]]},
+    {n:'Plancha en estrella',c:'Plancha lateral con la pierna de arriba elevada. Cambia a mitad de tiempo.',p:'M38 47 L70 60 L102 72 M70 60 L104 46 M38 47 L38 73 M38 47 L38 16',h:[[27,42]]},
+    {n:'Gusano',c:'Camina con las manos hasta plancha y vuelve con piernas estiradas.',p:'M28 73 L52 30 L78 54 L82 73',a:'M92 26 L110 26 M105 21 L110 26 L105 31',h:[[86,60]]},
+    {n:'Abdominal en V',c:'Sube tronco y piernas a la vez, manos a los pies.',p:'M60 72 L42 46 M60 72 L92 36 M44 48 L84 34',h:[[37,38]]},
+    {n:'Plancha inversa',c:'Boca arriba sobre manos y talones, cadera alineada.',p:'M104 72 L36 48 M36 48 L32 73',h:[[27,41]]},
+    {n:'Tijeras',c:'Piernas estiradas cerca del suelo, alterna arriba y abajo.',p:'M22 70 L60 71 L104 48 M60 71 L106 62 M22 72 L46 73',h:[[13,66]]}
+  ];
+
+  function fig(e){
+    var s='<svg viewBox="0 0 120 80" role="img" aria-label="'+e.n+'"><path d="M4 74 L116 74" stroke="#D6D6D6" stroke-width="2"></path>'+
+      '<path d="'+e.p+'" fill="none" stroke="#111111" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>';
+    if(e.a) s+='<path d="'+e.a+'" fill="none" stroke="#D0102B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>';
+    e.h.forEach(function(c){ s+='<circle cx="'+c[0]+'" cy="'+c[1]+'" r="6.5" fill="#D0102B"></circle>'; });
+    return s+'</svg>';
+  }
+  function esc(t){ return String(t).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
+
+  var $=function(id){return document.getElementById(id)};
+  function num(i){ return String(i+1).padStart(2,'0'); }
+  $('list').innerHTML=EX.map(function(e,i){
+    return '<li><span class="num">'+num(i)+'</span><span class="mini">'+fig(e)+'</span><span class="li-name">'+e.n+'</span></li>';
+  }).join('');
+  $('slist').innerHTML=EX.map(function(e,i){
+    return '<li class="si" id="si'+i+'"><span class="num">'+num(i)+'</span><span class="mini">'+fig(e)+'</span><span class="stext"><span class="stag"></span><span class="sname">'+e.n+'</span><span class="scue">'+e.c+'</span></span></li>';
+  }).join('');
+
+  // Fases: preparación + trabajo/descanso alternos (sin descanso tras el último)
+  var phases=[];
+  function buildPhases(){
+    var W=secs('timeWork'), R=secs('timeRest');
+    phases=[{t:'prep',d:PREP,i:0}];
+    EX.forEach(function(e,i){ phases.push({t:'work',d:W,i:i}); if(i<EX.length-1) phases.push({t:'rest',d:R,i:i+1}); });
+  }
+
+  var idx=0, endAt=0, running=false, paused=false, pauseRem=0, timer=null, wl=null;
+  var CIRC=2*Math.PI*88;
+  $('arc').style.strokeDasharray=CIRC;
+
+  // ---- Ajustes guardados (solo en este navegador) ----
+  function load(k,d){ try{ var v=localStorage.getItem('caim-'+k); return v===null?d:v; }catch(e){ return d; } }
+  function save(k,v){ try{ localStorage.setItem('caim-'+k,v); }catch(e){} }
+  $('volWork').value=load('volWork',100); $('volRest').value=load('volRest',50);
+  function volW(){ return $('volWork').value/100; }
+  function volR(){ return $('volRest').value/100; }
+  function showVols(){ $('volWorkOut').textContent=$('volWork').value+'%'; $('volRestOut').textContent=$('volRest').value+'%'; }
+  showVols();
+  function secs(id){ var v=Math.round(+$(id).value); if(!isFinite(v)||v<5) v=5; return Math.min(600,v); }
+  $('timeWork').value=Math.min(600,Math.max(5,Math.round(+load('timeWork',30))||30));
+  $('timeRest').value=Math.min(600,Math.max(5,Math.round(+load('timeRest',30))||30));
+  function syncRange(id){ $(id+'Range').value=Math.min(120,secs(id)); }
+  syncRange('timeWork'); syncRange('timeRest');
+  function showTimes(){
+    var W=secs('timeWork'), R=secs('timeRest'), n=EX.length;
+    $('sumLine').textContent=n+' ejercicios sin material · '+W+'″ de trabajo · '+R+'″ de descanso';
+    var s=PREP+n*W+(n-1)*R, m=Math.floor(s/60), r=s%60;
+    $('sumDur').textContent='Duración: '+m+' min'+(r?' '+r+' s':'');
+  }
+  showTimes();
+  ['timeWork','timeRest'].forEach(function(id){
+    var box=$(id), range=$(id+'Range');
+    box.addEventListener('input',function(){ if(this.value==='') return; save(id,secs(id)); syncRange(id); showTimes(); });
+    box.addEventListener('change',function(){ this.value=secs(id); save(id,this.value); syncRange(id); showTimes(); });
+    range.addEventListener('input',function(){ box.value=this.value; save(id,this.value); showTimes(); });
+  });
+
+  // ---- Audio ----
+  var ac=null, nodes=[], scheduledUpTo=-1, master=null;
+  function ensureAudio(){
+    try{
+      if(!ac){ var C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ac=new C(); }
+      if(ac.state==='suspended') ac.resume();
+    }catch(e){ ac=null; }
+    return ac;
+  }
+  function tone(at,freq,dur,vol){
+    var o=ac.createOscillator(), g=ac.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,at);
+    g.gain.linearRampToValueAtTime(vol,at+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,at+dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(at); o.stop(at+dur+0.05);
+    nodes.push(o);
+    o.onended=function(){ var k=nodes.indexOf(o); if(k>=0) nodes.splice(k,1); };
+  }
+  function beep(at){ tone(at,880,0.2,0.7); }
+  function bell(at){ tone(at,1318.5,1.1,0.75); tone(at,659.3,1.1,0.4); tone(at+0.28,1568,1.2,0.6); tone(at+0.28,784,1.2,0.35); }
+  function bellOn(){ return $('soundOn').checked && ac; }
+
+  // ---- Música del usuario ----
+  var tracks=[], trackIdx=0, player=null, musicGain=null, musicOn=true, urls=[];
+  function hasMusic(){ return tracks.length>0 && musicOn && ac && musicGain; }
+  function levelFor(t){ return t==='work'?volW():volR(); }
+  function initPlayer(){
+    if(player||!ensureAudio()) return;
+    player=new Audio(); player.preload='auto';
+    try{
+      var srcNode=ac.createMediaElementSource(player);
+      musicGain=ac.createGain(); musicGain.gain.value=volR();
+      srcNode.connect(musicGain); musicGain.connect(ac.destination);
+    }catch(e){ musicGain=null; }
+    player.addEventListener('ended',function(){ trackIdx=(trackIdx+1)%tracks.length; loadTrack(); playMusic(); });
+  }
+  function loadTrack(){
+    if(!player||!tracks.length) return;
+    player.src=urls[trackIdx];
+  }
+  function playMusic(){ if(player&&tracks.length&&musicOn){ var p=player.play(); if(p&&p.catch) p.catch(function(){}); } }
+  function pauseMusic(){ if(player) player.pause(); }
+  function setMusicLevel(v){ if(musicGain&&ac){ var g=musicGain.gain; g.cancelScheduledValues(ac.currentTime); g.setTargetAtTime(v,ac.currentTime,0.15); } }
+  function musicInfo(){
+    var n=tracks.length;
+    $('musicInfo').textContent= n? (n+(n===1?' canción':' canciones')+': '+tracks.map(function(t){return t.name.replace(/\.[^.]+$/,'');}).join(' · ')) : 'Sin canciones. Elige archivos de audio de tu móvil.';
+    $('musicClear').hidden=!n; $('musicTry').hidden=!n;
+  }
+  function setTracks(list){
+    urls.forEach(function(u){ try{URL.revokeObjectURL(u);}catch(e){} });
+    tracks=list; urls=list.map(function(t){ return URL.createObjectURL(t.blob); });
+    trackIdx=0; if(player){ player.pause(); loadTrack(); }
+    musicInfo();
+  }
+  // Guardado de canciones en el dispositivo (IndexedDB) para no elegirlas cada vez
+  function idb(cb){
+    try{
+      var r=indexedDB.open('caim-ted',1);
+      r.onupgradeneeded=function(){ r.result.createObjectStore('music'); };
+      r.onsuccess=function(){ cb(r.result); };
+      r.onerror=function(){ cb(null); };
+    }catch(e){ cb(null); }
+  }
+  function storeTracks(list){ idb(function(db){ if(!db) return; try{ var tx=db.transaction('music','readwrite'); tx.objectStore('music').put(list,'tracks'); }catch(e){} }); }
+  idb(function(db){ if(!db) return; try{ var q=db.transaction('music','readonly').objectStore('music').get('tracks'); q.onsuccess=function(){ if(q.result&&q.result.length&&!tracks.length) setTracks(q.result); }; }catch(e){} });
+
+  $('musicFile').addEventListener('change',function(){
+    var files=Array.prototype.slice.call(this.files||[]).filter(function(f){ return /^audio\//.test(f.type)||/\.(mp3|m4a|aac|wav|ogg|oga|flac|opus)$/i.test(f.name); });
+    if(!files.length) return;
+    var list=files.map(function(f){ return {name:f.name,blob:f}; });
+    setTracks(list); storeTracks(list); this.value='';
+  });
+  $('musicClear').addEventListener('click',function(){ pauseMusic(); setTracks([]); storeTracks([]); $('musicTry').textContent='Escuchar'; });
+  $('musicTry').addEventListener('click',function(){
+    initPlayer(); if(!player) return;
+    if(!player.paused){ pauseMusic(); this.textContent='Escuchar'; return; }
+    if(!player.src) loadTrack();
+    setMusicLevel(volW()); playMusic(); this.textContent='Parar';
+  });
+  ['volWork','volRest'].forEach(function(id){
+    $(id).addEventListener('input',function(){ showVols(); save(id,this.value); if(running&&!paused) scheduleFrom(); else if(player&&!player.paused) setMusicLevel(id==='volWork'?volW():volR()); });
+  });
+  $('musicToggle').addEventListener('click',function(){
+    musicOn=!musicOn; this.setAttribute('aria-pressed',String(musicOn));
+    if(musicOn&&running&&!paused){ ensureAudio(); playMusic(); scheduleFrom(); } else pauseMusic();
+  });
+
+  // ---- Programación de pitidos, timbre y volumen de la música ----
+  function schedulePhase(start,ph){
+    if(!ac) return;
+    var now=ac.currentTime-0.02, end=start+ph.d;
+    if(bellOn()){
+      for(var k=5;k>=1;k--){ var at=end-k; if(at>=now) beep(at); }
+      if(end>=now) bell(end);
+    }
+    if(musicGain){
+      var g=musicGain.gain, lvl=levelFor(ph.t);
+      g.setTargetAtTime(lvl,Math.max(start,ac.currentTime),0.15);
+      if(end-5>=now) g.setTargetAtTime(lvl*DUCK,end-5,0.1);
+    }
+  }
+  function cancelSounds(){
+    nodes.slice().forEach(function(o){ try{o.stop();}catch(e){} }); nodes=[]; scheduledUpTo=-1;
+    if(musicGain&&ac) musicGain.gain.cancelScheduledValues(ac.currentTime);
+  }
+  function scheduleFrom(){
+    cancelSounds();
+    if(!ac||!running||paused) return;
+    var rem=(endAt-performance.now())/1000;
+    schedulePhase(ac.currentTime+rem-phases[idx].d, phases[idx]);
+    if(idx+1<phases.length) schedulePhase(ac.currentTime+rem, phases[idx+1]);
+    scheduledUpTo=idx+1;
+  }
+  function scheduleAhead(){
+    if(!ac||idx+1>=phases.length||scheduledUpTo>=idx+1) return;
+    var rem=(endAt-performance.now())/1000;
+    schedulePhase(ac.currentTime+rem, phases[idx+1]);
+    scheduledUpTo=idx+1;
+  }
+
+  function vibrate(p){ if($('vibeOn').checked && navigator.vibrate){ try{navigator.vibrate(p);}catch(e){} } }
+  function lockScreen(){ try{ if('wakeLock' in navigator){ navigator.wakeLock.request('screen').then(function(l){wl=l;}).catch(function(){}); } }catch(e){} }
+  function unlockScreen(){ try{ if(wl){ wl.release(); wl=null; } }catch(e){} }
+  function fmt(s){ s=Math.max(0,Math.ceil(s)); var m=Math.floor(s/60); return m+':'+String(s%60).padStart(2,'0'); }
+  function show(id){ ['home','session','done'].forEach(function(s){ $(s).hidden=(s!==id); }); }
+
+  function paintPhase(){
+    var ph=phases[idx], sess=$('session');
+    sess.classList.toggle('work',ph.t==='work');
+    $('phase').textContent= ph.t==='work'?'TRABAJO':(ph.t==='rest'?'DESCANSO':'PREPÁRATE');
+    $('count').textContent=(ph.i+1)+'/'+EX.length;
+    var doneWork=0; for(var k=0;k<idx;k++) if(phases[k].t==='work') doneWork++;
+    $('bar').style.width=(doneWork/EX.length*100)+'%';
+    for(var i=0;i<EX.length;i++){
+      var li=$('si'+i), cur=(i===ph.i);
+      li.classList.toggle('done',i<ph.i);
+      li.classList.toggle('cur',cur&&ph.t==='work');
+      li.classList.toggle('up',cur&&ph.t!=='work');
+      li.querySelector('.stag').textContent= cur?(ph.t==='work'?'AHORA':'SIGUIENTE'):'';
+    }
+    var target=$('si'+ph.i), box=$('slist');
+    requestAnimationFrame(function(){ box.scrollTop=target.offsetTop-box.offsetTop-8; });
+  }
+
+  function render(now){
+    var ph=phases[idx];
+    var rem=paused?pauseRem:Math.max(0,endAt-now);
+    var secs=Math.ceil(rem/1000);
+    $('secs').textContent=secs;
+    $('secs').classList.toggle('final',secs<=5&&secs>0&&!paused);
+    $('arc').style.strokeDashoffset=CIRC*(1-rem/(ph.d*1000));
+    var tot=rem/1000; for(var k=idx+1;k<phases.length;k++) tot+=phases[k].d;
+    $('total').textContent=fmt(tot);
+  }
+
+  function tick(){
+    if(!running) return;
+    var now=performance.now();
+    if(!paused){
+      var changed=false;
+      while(now>=endAt){
+        idx++;
+        if(idx>=phases.length){ finish(true); return; }
+        endAt+=phases[idx].d*1000; changed=true;
+      }
+      if(changed){ paintPhase(); vibrate(phases[idx].t==='work'?[250,100,250]:[400]); scheduleAhead(); }
+    }
+    render(now);
+  }
+
+  function goTo(n){
+    idx=Math.max(0,Math.min(phases.length-1,n));
+    var d=phases[idx].d*1000;
+    if(paused){ pauseRem=d; } else { endAt=performance.now()+d; }
+    paintPhase(); scheduleFrom(); render(performance.now());
+  }
+
+  function start(){
+    ensureAudio(); initPlayer(); buildPhases();
+    idx=0; paused=false; running=true;
+    endAt=performance.now()+phases[0].d*1000;
+    $('pause').textContent='Pausa'; $('confirm').hidden=true; $('musicTry').textContent='Escuchar';
+    $('musicToggle').hidden=!tracks.length;
+    show('session'); paintPhase();
+    if(tracks.length&&player){ if(!player.src) loadTrack(); setMusicLevel(volR()); playMusic(); }
+    scheduleFrom(); render(performance.now());
+    lockScreen();
+    clearInterval(timer); timer=setInterval(tick,100);
+  }
+
+  function finish(completed){
+    running=false; clearInterval(timer); cancelSounds(); unlockScreen(); pauseMusic();
+    if(completed){ vibrate([300,120,300,120,500]); show('done'); } else { show('home'); }
+  }
+
+  $('start').addEventListener('click',start);
+  $('home').addEventListener('click',function(){ show('home'); });
+  $('testSound').addEventListener('click',function(){
+    if(!ensureAudio()) return;
+    var t=ac.currentTime+0.05; beep(t); beep(t+1); bell(t+2);
+  });
+  $('pause').addEventListener('click',function(){
+    var now=performance.now();
+    if(!paused){ paused=true; pauseRem=Math.max(0,endAt-now); cancelSounds(); pauseMusic(); $('pause').textContent='Seguir'; }
+    else { ensureAudio(); paused=false; endAt=now+pauseRem; $('pause').textContent='Pausa'; playMusic(); scheduleFrom(); }
+    render(now);
+  });
+  $('next').addEventListener('click',function(){ if(idx+1>=phases.length){ finish(true); return; } goTo(idx+1); });
+  $('prev').addEventListener('click',function(){
+    var ph=phases[idx], elapsed=ph.d*1000-(paused?pauseRem:endAt-performance.now());
+    if(ph.t==='work'&&elapsed>3000){ goTo(idx); return; }
+    for(var k=idx-1;k>=0;k--){ if(phases[k].t==='work'){ goTo(k); return; } }
+    goTo(0);
+  });
+  $('exit').addEventListener('click',function(){ $('confirm').hidden=false; });
+  $('confirmNo').addEventListener('click',function(){ $('confirm').hidden=true; });
+  $('confirmYes').addEventListener('click',function(){ finish(false); });
+  $('soundOn').addEventListener('change',function(){ if(this.checked) ensureAudio(); scheduleFrom(); });
+
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'&&running){ lockScreen(); ensureAudio(); tick(); if(!paused) scheduleFrom(); }
+  });
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+
+</body>
+</html>
